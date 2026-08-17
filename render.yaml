@@ -23,10 +23,7 @@ services:
           name: stitch-enterprise-db
           property: connectionString
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: stitch-enterprise-frontend
-          property: url
+        sync: false
 
   # Frontend Web Service (Next.js)
   - type: web
@@ -41,15 +38,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: stitch-enterprise-backend
-          property: url
+        sync: false
       - key: NEXT_PUBLIC_SOCKET_URL
-        fromService:
-          type: web
-          name: stitch-enterprise-backend
-          property: url
+        sync: false
 
 databases:
   # Managed PostgreSQL Database
