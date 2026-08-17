@@ -8,7 +8,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('BACKEND_PORT') || 3001;
+  const port = process.env.PORT || configService.get<number>('PORT') || configService.get<number>('BACKEND_PORT') || 3001;
   
   // Enable CORS for frontend
   app.enableCors({
@@ -29,8 +29,8 @@ async function bootstrap() {
   const throttleMiddleware = new ThrottleMiddleware();
   app.use((req, res, next) => throttleMiddleware.use(req, res, next));
 
-  await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`Backend running on http://0.0.0.0:${port}`);
 }
 
 bootstrap();
