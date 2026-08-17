@@ -1,0 +1,59 @@
+services:
+  # Backend Web Service (NestJS API + WebSockets)
+  - type: web
+    name: stitch-enterprise-backend
+    runtime: node
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: node dist/main.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stitch-enterprise-db
+          property: connectionString
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: stitch-enterprise-frontend
+          property: url
+
+  # Frontend Web Service (Next.js)
+  - type: web
+    name: stitch-enterprise-frontend
+    runtime: node
+    plan: free
+    branch: main
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: stitch-enterprise-backend
+          property: url
+      - key: NEXT_PUBLIC_SOCKET_URL
+        fromService:
+          type: web
+          name: stitch-enterprise-backend
+          property: url
+
+databases:
+  # Managed PostgreSQL Database
+  - name: stitch-enterprise-db
+    plan: free
+    databaseName: stitch_enterprise
+    user: stitch_user
