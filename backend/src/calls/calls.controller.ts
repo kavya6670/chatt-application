@@ -1,15 +1,24 @@
 import { Controller, Post, Get, Put, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { IsString, IsOptional, IsArray, IsEnum } from 'class-validator';
 import { CallsService } from './calls.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CallType } from '@prisma/client';
 
 class CreateCallDto {
+  @IsEnum(CallType)
   type: CallType;
+
+  @IsOptional()
+  @IsString()
   conversationId?: string;
+
+  @IsArray()
+  @IsString({ each: true })
   participantIds: string[];
 }
 
 class JoinCallDto {
+  @IsString()
   callId: string;
 }
 
@@ -45,8 +54,6 @@ export class CallsController {
 
   @Get(':id')
   async getCall(@Param('id') id: string, @Request() req) {
-    // This would return call details
-    // Implementation depends on requirements
-    return { message: 'Get call details' };
+    return this.callsService.joinCall(req.user.sub, { callId: id });
   }
 }

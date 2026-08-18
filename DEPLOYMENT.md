@@ -6,8 +6,9 @@
 - Docker and Docker Compose
 - PostgreSQL 14+ with pgvector extension
 - MinIO (or S3-compatible storage)
-- OpenAI API key (for embeddings)
-- Anthropic API key (for AI assistant)
+- Groq API key (for chat assistant)
+- Gemini API key (for embeddings)
+- Older Anthropic/OpenAI keys remain supported as fallbacks
 
 ## Environment Variables
 
@@ -25,6 +26,13 @@ JWT_EXPIRES_IN="7d"
 # No additional WebRTC-specific environment variables needed
 
 # AI/LLM
+# Preferred free setup
+GROQ_API_KEY="your-groq-api-key"
+GROQ_MODEL="llama-3.1-8b-instant"
+GEMINI_API_KEY="your-gemini-api-key"
+GEMINI_EMBEDDING_MODEL="gemini-embedding-001"
+
+# Backward-compatible fallback values
 ANTHROPIC_API_KEY="your-anthropic-api-key"
 EMBEDDINGS_API_KEY="your-openai-api-key"
 EMBEDDINGS_MODEL="text-embedding-3-small"

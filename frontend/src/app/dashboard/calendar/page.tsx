@@ -22,7 +22,6 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   
-  // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -53,6 +52,10 @@ export default function CalendarPage() {
   };
 
   const handleCreateEvent = async () => {
+    if (!formData.title.trim()) {
+      alert('Please enter an event title');
+      return;
+    }
     try {
       await calendarApi.createEvent({
         ...formData,
@@ -62,17 +65,17 @@ export default function CalendarPage() {
       setShowCreateModal(false);
       setFormData({ title: '', description: '', startTime: '', endTime: '', location: '', isAllDay: false });
       loadEvents();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create event:', error);
-      alert('Failed to create event');
+      alert(error?.response?.data?.message || 'Failed to create event');
     }
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
-    
+    if (!confirm('Delete this event?')) return;
     try {
       await calendarApi.deleteEvent(eventId);
+      setSelectedEvent(null);
       loadEvents();
     } catch (error) {
       console.error('Failed to delete event:', error);
@@ -93,10 +96,6 @@ export default function CalendarPage() {
     setShowCreateModal(true);
   };
 
-  const handleEventClick = (event: CalendarEvent) => {
-    setSelectedEvent(event);
-  };
-
   const getEventsForDate = (date: Date) => {
     return events.filter((event) => isSameDay(parseISO(event.startTime), date));
   };
@@ -108,13 +107,12 @@ export default function CalendarPage() {
     calendarStart.setDate(calendarStart.getDate() - calendarStart.getDay());
     const calendarEnd = new Date(monthEnd);
     calendarEnd.setDate(calendarEnd.getDate() + (6 - calendarEnd.getDay()));
-
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
     return (
       <div className="grid grid-cols-7 gap-1">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div key={day} className="text-center font-medium text-sm py-2 text-gray-600 dark:text-gray-400">
+          <div key={day} className="text-center text-[10px] font-bold py-2 text-muted-foreground uppercase tracking-wide">
             {day}
           </div>
         ))}
@@ -127,30 +125,38 @@ export default function CalendarPage() {
             <div
               key={date.toISOString()}
               onClick={() => handleDateClick(date)}
-              className={`min-h-24 p-1 border rounded cursor-pointer transition-colors ${
+              className={`min-h-20 p-1.5 border rounded-xl cursor-pointer transition-all duration-100 ${
                 isCurrentMonth
-                  ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  : 'bg-gray-50 dark:bg-gray-900 text-gray-400'
-              } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
+                  ? 'bg-card border-border hover:bg-sidebar/50'
+                  : 'bg-sidebar/30 border-border/30 text-muted-foreground/40'
+              } ${isToday ? 'ring-2 ring-[#6D4C5B] dark:ring-[#D98C9A]' : ''}`}
             >
-              <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : ''}`}>
+              <div
+                className={`text-[11px] font-bold mb-1 w-5 h-5 rounded-full flex items-center justify-center ${
+                  isToday
+                    ? 'bg-[#6D4C5B] text-white'
+                    : isCurrentMonth
+                    ? 'text-foreground'
+                    : 'text-muted-foreground/40'
+                }`}
+              >
                 {format(date, 'd')}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {dayEvents.slice(0, 2).map((event) => (
                   <div
                     key={event.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleEventClick(event);
+                      setSelectedEvent(event);
                     }}
-                    className="text-xs p-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 truncate"
+                    className="text-[9px] px-1 py-0.5 rounded bg-[#6D4C5B]/15 text-[#6D4C5B] dark:text-[#E8B6BF] truncate font-semibold border border-[#6D4C5B]/20 hover:bg-[#6D4C5B]/25"
                   >
                     {event.title}
                   </div>
                 ))}
                 {dayEvents.length > 2 && (
-                  <div className="text-xs text-gray-500">+{dayEvents.length - 2} more</div>
+                  <div className="text-[9px] text-muted-foreground font-medium">+{dayEvents.length - 2} more</div>
                 )}
               </div>
             </div>
@@ -162,40 +168,52 @@ export default function CalendarPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 rounded-full border-2 border-[#6D4C5B] border-t-transparent animate-spin" />
+          <span className="text-xs text-muted-foreground font-medium">Loading calendar...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-[calc(100vh-8rem)] bg-background text-foreground transition-colors duration-200">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => router.push('/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/dashboard')}
+              className="border-border bg-card hover:bg-sidebar text-foreground h-9 px-3 rounded-lg"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Calendar</h1>
-              <p className="text-gray-600 dark:text-gray-400">Manage your schedule</p>
+              <h1 className="text-xl font-bold text-foreground">Team Calendar</h1>
+              <p className="text-muted-foreground text-xs">Schedule and manage your workspace events</p>
             </div>
           </div>
-          <Button onClick={() => {
-            setSelectedDate(new Date());
-            setFormData({
-              title: '',
-              description: '',
-              startTime: format(new Date(), "yyyy-MM-dd'T'09:00"),
-              endTime: format(new Date(), "yyyy-MM-dd'T'10:00"),
-              location: '',
-              isAllDay: false,
-            });
-            setShowCreateModal(true);
-          }}>
-            <Plus className="w-4 h-4 mr-2" />
+          <Button
+            onClick={() => {
+              const now = new Date();
+              setSelectedDate(now);
+              setFormData({
+                title: '',
+                description: '',
+                startTime: format(now, "yyyy-MM-dd'T'09:00"),
+                endTime: format(now, "yyyy-MM-dd'T'10:00"),
+                location: '',
+                isAllDay: false,
+              });
+              setShowCreateModal(true);
+            }}
+            className="bg-[#6D4C5B] hover:bg-[#5B3D4A] text-white rounded-xl shadow-sm text-xs h-9 px-4"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
             New Event
           </Button>
         </div>
@@ -203,22 +221,37 @@ export default function CalendarPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Calendar Grid */}
           <div className="lg:col-span-3">
-            <Card>
-              <CardHeader>
+            <Card className="border border-border bg-card shadow-sm rounded-2xl">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <CalendarIcon className="w-5 h-5" />
+                  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4 text-[#6D4C5B] dark:text-[#D98C9A]" />
                     {format(currentDate, 'MMMM yyyy')}
                   </CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
-                      Previous
+                  <div className="flex gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                      className="text-xs border-border bg-card hover:bg-sidebar h-8 px-3 rounded-lg"
+                    >
+                      ← Prev
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentDate(new Date())}
+                      className="text-xs border-border bg-[#6D4C5B]/10 text-[#6D4C5B] dark:text-[#D98C9A] hover:bg-[#6D4C5B]/20 h-8 px-3 rounded-lg"
+                    >
                       Today
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
-                      Next
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                      className="text-xs border-border bg-card hover:bg-sidebar h-8 px-3 rounded-lg"
+                    >
+                      Next →
                     </Button>
                   </div>
                 </div>
@@ -231,45 +264,44 @@ export default function CalendarPage() {
 
           {/* Upcoming Events */}
           <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
+            <Card className="border border-border bg-card shadow-sm rounded-2xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#A66A7A]" />
                   Upcoming Events
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {events
                     .filter((e) => new Date(e.startTime) >= new Date())
                     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-                    .slice(0, 5)
+                    .slice(0, 6)
                     .map((event) => (
                       <div
                         key={event.id}
-                        className="p-3 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                        onClick={() => handleEventClick(event)}
+                        className="p-3 border border-border rounded-xl hover:bg-sidebar/50 cursor-pointer transition-colors"
+                        onClick={() => setSelectedEvent(event)}
                       >
-                        <div className="font-medium">{event.title}</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {format(parseISO(event.startTime), 'MMM d, h:mm a')}
+                        <div className="flex items-start gap-2">
+                          <div className="w-2 h-2 rounded-full bg-[#6D4C5B] shrink-0 mt-1" />
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-foreground truncate">{event.title}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              {format(parseISO(event.startTime), 'MMM d, h:mm a')}
+                            </div>
+                            {event.location && (
+                              <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-2.5 h-2.5" />
+                                {event.location}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        {event.location && (
-                          <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1 mt-1">
-                            <MapPin className="w-3 h-3" />
-                            {event.location}
-                          </div>
-                        )}
-                        {event.callId && (
-                          <div className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-1">
-                            <Video className="w-3 h-3" />
-                            Video call linked
-                          </div>
-                        )}
                       </div>
                     ))}
                   {events.filter((e) => new Date(e.startTime) >= new Date()).length === 0 && (
-                    <div className="text-center py-4 text-gray-600 dark:text-gray-400">
+                    <div className="text-center py-6 text-xs text-muted-foreground font-medium">
                       No upcoming events
                     </div>
                   )}
@@ -281,57 +313,65 @@ export default function CalendarPage() {
 
         {/* Create Event Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md">
-              <CardHeader>
-                <CardTitle>Create Event</CardTitle>
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <Card className="w-full max-w-md border border-border bg-card rounded-2xl shadow-2xl p-6">
+              <CardHeader className="p-0 pb-4">
+                <h3 className="text-base font-bold text-foreground">Create New Event</h3>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : 'Today'}
+                </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Title</Label>
+              <CardContent className="p-0 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="title" className="text-xs font-semibold text-foreground">Event Title *</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
+                    placeholder="e.g. Engineering Standup"
+                    className="bg-input border-border text-foreground text-xs focus:border-[#A66A7A] h-10 rounded-xl"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="description" className="text-xs font-semibold text-foreground">Description</Label>
                   <Input
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Optional notes..."
+                    className="bg-input border-border text-foreground text-xs focus:border-[#A66A7A] h-10 rounded-xl"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="startTime">Start Time</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="startTime" className="text-xs font-semibold text-foreground">Start Time</Label>
                     <Input
                       id="startTime"
                       type="datetime-local"
                       value={formData.startTime}
                       onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                      required
+                      className="bg-input border-border text-foreground text-xs focus:border-[#A66A7A] h-10 rounded-xl"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="endTime">End Time</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="endTime" className="text-xs font-semibold text-foreground">End Time</Label>
                     <Input
                       id="endTime"
                       type="datetime-local"
                       value={formData.endTime}
                       onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                      required
+                      className="bg-input border-border text-foreground text-xs focus:border-[#A66A7A] h-10 rounded-xl"
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="location">Location</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="location" className="text-xs font-semibold text-foreground">Location</Label>
                   <Input
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="e.g. Virtual Room 1 or Building A"
+                    className="bg-input border-border text-foreground text-xs focus:border-[#A66A7A] h-10 rounded-xl"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -340,14 +380,15 @@ export default function CalendarPage() {
                     id="isAllDay"
                     checked={formData.isAllDay}
                     onChange={(e) => setFormData({ ...formData, isAllDay: e.target.checked })}
+                    className="rounded border-border w-4 h-4"
                   />
-                  <Label htmlFor="isAllDay">All day event</Label>
+                  <Label htmlFor="isAllDay" className="text-xs font-semibold text-foreground cursor-pointer">All day event</Label>
                 </div>
                 <div className="flex gap-2 pt-4">
-                  <Button onClick={handleCreateEvent} className="flex-1">
+                  <Button onClick={handleCreateEvent} className="flex-1 bg-[#6D4C5B] hover:bg-[#5B3D4A] text-white text-xs h-10 rounded-xl">
                     Create Event
                   </Button>
-                  <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                  <Button variant="outline" onClick={() => setShowCreateModal(false)} className="flex-1 text-xs h-10 border-border rounded-xl">
                     Cancel
                   </Button>
                 </div>
@@ -358,48 +399,48 @@ export default function CalendarPage() {
 
         {/* Event Details Modal */}
         {selectedEvent && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md">
-              <CardHeader>
-                <CardTitle>{selectedEvent.title}</CardTitle>
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <Card className="w-full max-w-md border border-border bg-card rounded-2xl shadow-2xl p-6">
+              <CardHeader className="p-0 pb-4">
+                <h3 className="text-base font-bold text-foreground">{selectedEvent.title}</h3>
+                <p className="text-[10px] text-[#A66A7A] uppercase font-semibold tracking-wide mt-0.5">Calendar Event</p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Clock className="w-4 h-4" />
+              <CardContent className="p-0 space-y-3">
+                <div className="flex items-center gap-2 text-xs text-foreground">
+                  <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span>
-                    {format(parseISO(selectedEvent.startTime), 'MMM d, h:mm a')} - {format(parseISO(selectedEvent.endTime), 'h:mm a')}
+                    {format(parseISO(selectedEvent.startTime), 'MMM d, h:mm a')} — {format(parseISO(selectedEvent.endTime), 'h:mm a')}
                   </span>
                 </div>
                 {selectedEvent.location && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <MapPin className="w-4 h-4" />
+                  <div className="flex items-center gap-2 text-xs text-foreground">
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
                     <span>{selectedEvent.location}</span>
                   </div>
                 )}
                 {selectedEvent.description && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-xs text-muted-foreground bg-sidebar p-3 rounded-xl border border-border">
                     {selectedEvent.description}
                   </div>
                 )}
                 {selectedEvent.callId && (
-                  <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                  <div className="flex items-center gap-2 text-xs text-[#5F8F72]">
                     <Video className="w-4 h-4" />
-                    <span>Video call linked</span>
+                    <span>Video call linked to this event</span>
                   </div>
                 )}
                 <div className="flex gap-2 pt-4">
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     onClick={() => {
                       handleDeleteEvent(selectedEvent.id);
-                      setSelectedEvent(null);
                     }}
-                    className="flex-1"
+                    className="flex-1 text-xs h-10 border-[#B85C63]/30 bg-[#B85C63]/10 hover:bg-[#B85C63]/25 text-[#B85C63] rounded-xl"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    Delete Event
                   </Button>
-                  <Button variant="outline" onClick={() => setSelectedEvent(null)}>
+                  <Button variant="outline" onClick={() => setSelectedEvent(null)} className="flex-1 text-xs h-10 border-border rounded-xl">
                     Close
                   </Button>
                 </div>

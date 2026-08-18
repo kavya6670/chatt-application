@@ -1,24 +1,62 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { IsString, IsOptional, IsBoolean, IsDateString } from 'class-validator';
 import { CalendarService } from './calendar.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 class CreateEventDto {
+  @IsString()
   title: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
+
+  @IsDateString()
   startTime: string;
+
+  @IsDateString()
   endTime: string;
+
+  @IsOptional()
+  @IsString()
   location?: string;
+
+  @IsOptional()
+  @IsBoolean()
   isAllDay?: boolean;
+
+  @IsOptional()
+  @IsString()
   callId?: string;
 }
 
 class UpdateEventDto {
+  @IsOptional()
+  @IsString()
   title?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsDateString()
   startTime?: string;
+
+  @IsOptional()
+  @IsDateString()
   endTime?: string;
+
+  @IsOptional()
+  @IsString()
   location?: string;
+
+  @IsOptional()
+  @IsBoolean()
   isAllDay?: boolean;
+
+  @IsOptional()
+  @IsString()
   callId?: string;
 }
 

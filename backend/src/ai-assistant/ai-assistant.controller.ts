@@ -1,9 +1,14 @@
 import { Controller, Post, Get, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { IsOptional, IsString } from 'class-validator';
 import { AiAssistantService } from './ai-assistant.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 class ChatDto {
+  @IsString()
   query: string;
+
+  @IsOptional()
+  @IsString()
   conversationId?: string;
 }
 

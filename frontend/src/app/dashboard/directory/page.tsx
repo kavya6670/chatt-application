@@ -28,7 +28,7 @@ export default function DirectoryPage() {
   }, []);
 
   useEffect(() => {
-    let filtered = users.filter((u) => u.id !== user?.id); // Don't show current user
+    let filtered = users.filter((u) => u.id !== user?.id);
 
     if (searchTerm) {
       filtered = filtered.filter(
@@ -67,51 +67,58 @@ export default function DirectoryPage() {
   };
 
   const startChat = (userId: string) => {
-    // This will navigate to chat with the selected user
     router.push(`/dashboard/chat?userId=${userId}`);
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 rounded-full border-2 border-[#6D4C5B] border-t-transparent animate-spin" />
+          <span className="text-xs text-muted-foreground font-medium">Loading employee directory...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-[calc(100vh-8rem)] bg-background text-foreground transition-colors duration-200">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-6 flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/dashboard')}
+            className="border-border bg-card hover:bg-sidebar text-foreground h-9 px-3 rounded-lg"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1.5" />
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Employee Directory</h1>
-            <p className="text-gray-600 dark:text-gray-400">Find and connect with colleagues</p>
+            <h1 className="text-xl font-bold text-foreground">Employee Directory</h1>
+            <p className="text-muted-foreground text-xs font-medium">Find and connect with company colleagues</p>
           </div>
         </div>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card className="border border-border bg-card shadow-sm rounded-2xl">
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search by name, ID, or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-xs bg-input border-border focus:border-[#A66A7A]"
                 />
               </div>
               <div>
                 <select
                   value={filterDepartment}
                   onChange={(e) => setFilterDepartment(e.target.value)}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full h-10 rounded-xl border border-border bg-input px-3 py-2 text-xs focus:border-[#A66A7A] focus:outline-none text-foreground"
                 >
                   <option value="">All Departments</option>
                   {departments.map((dept) => (
@@ -125,7 +132,7 @@ export default function DirectoryPage() {
                 <select
                   value={filterRole}
                   onChange={(e) => setFilterRole(e.target.value)}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full h-10 rounded-xl border border-border bg-input px-3 py-2 text-xs focus:border-[#A66A7A] focus:outline-none text-foreground"
                 >
                   <option value="">All Roles</option>
                   <option value="ADMIN">Admin</option>
@@ -140,45 +147,45 @@ export default function DirectoryPage() {
         {/* Users Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredUsers.map((userItem) => (
-            <Card key={userItem.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-                      {userItem.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{userItem.name}</CardTitle>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{userItem.employeeId}</p>
-                    </div>
+            <Card key={userItem.id} className="border border-border bg-card hover:shadow-md transition-all rounded-2xl overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6D4C5B] to-[#A66A7A] flex items-center justify-center text-white font-bold text-sm shadow-sm uppercase shrink-0">
+                    {userItem.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <CardTitle className="text-sm font-bold text-foreground truncate">{userItem.name}</CardTitle>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{userItem.employeeId}</p>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm mb-4">
-                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                    <UserIcon className="w-4 h-4" />
-                    <span>{userItem.department?.name || 'No Department'}</span>
+              <CardContent className="space-y-4">
+                <div className="space-y-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <UserIcon className="w-3.5 h-3.5 text-[#6D4C5B] dark:text-[#D98C9A]" />
+                    <span className="font-semibold text-foreground">{userItem.department?.name || 'General Staff'}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                    <span className="capitalize">{userItem.role.toLowerCase()}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="capitalize text-[10px] px-2 py-0.5 rounded bg-sidebar border border-border text-foreground font-semibold">
+                      {userItem.role.toLowerCase()}
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 text-xs h-8 border-border hover:bg-[#E8DCE0] dark:hover:bg-[#352B30] text-[#6D4C5B] dark:text-[#D98C9A] rounded-lg"
                     onClick={() => startChat(userItem.id)}
                   >
-                    <MessageSquare className="w-4 h-4 mr-2" />
+                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
                     Message
                   </Button>
-                  <Button size="sm" variant="outline" disabled>
-                    <Phone className="w-4 h-4" />
+                  <Button size="sm" variant="outline" disabled className="h-8 w-8 p-0 border-border text-muted-foreground rounded-lg">
+                    <Phone className="w-3.5 h-3.5" />
                   </Button>
-                  <Button size="sm" variant="outline" disabled>
-                    <Video className="w-4 h-4" />
+                  <Button size="sm" variant="outline" disabled className="h-8 w-8 p-0 border-border text-muted-foreground rounded-lg">
+                    <Video className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </CardContent>
@@ -187,10 +194,10 @@ export default function DirectoryPage() {
         </div>
 
         {filteredUsers.length === 0 && (
-          <Card className="text-center py-12">
+          <Card className="text-center py-12 border border-border bg-card rounded-2xl">
             <CardContent>
-              <UserIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">No employees found matching your criteria</p>
+              <UserIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-xs text-muted-foreground font-medium">No employees found matching the filters.</p>
             </CardContent>
           </Card>
         )}

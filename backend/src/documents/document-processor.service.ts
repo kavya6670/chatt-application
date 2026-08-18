@@ -35,8 +35,10 @@ export class DocumentProcessorService {
       forcePathStyle: true,
     });
     this.bucketName = this.configService.get<string>('MINIO_BUCKET') || 'stitch-files';
-    this.embeddingsApiKey = this.configService.get<string>('EMBEDDINGS_API_KEY') || '';
-    this.embeddingsModel = this.configService.get<string>('EMBEDDINGS_MODEL') || 'text-embedding-3-small';
+    this.embeddingsApiKey = this.configService.get<string>('GEMINI_API_KEY') || this.configService.get<string>('EMBEDDINGS_API_KEY') || '';
+
+    const configuredModel = this.configService.get<string>('GEMINI_EMBEDDING_MODEL') || this.configService.get<string>('EMBEDDINGS_MODEL') || 'gemini-embedding-001';
+    this.embeddingsModel = configuredModel === 'text-embedding-3-small' ? 'gemini-embedding-001' : configuredModel;
   }
 
   async processDocument(documentId: string) {
@@ -189,20 +191,20 @@ export class DocumentProcessorService {
     }
 
     const response = await axios.post(
-      'https://api.openai.com/v1/embeddings',
+      `https://generativelanguage.googleapis.com/v1beta/models/${this.embeddingsModel}:embedContent?key=${this.embeddingsApiKey}`,
       {
-        model: this.embeddingsModel,
-        input: text,
+        content: {
+          parts: [{ text }],
+        },
       },
       {
         headers: {
-          'Authorization': `Bearer ${this.embeddingsApiKey}`,
           'Content-Type': 'application/json',
         },
       },
     );
 
-    return response.data.data[0].embedding;
+    return response.data.embedding.values;
   }
 
   async searchSimilarDocuments(query: string, departmentId?: string, limit = 5) {

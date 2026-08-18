@@ -4,26 +4,62 @@
 
 @layer base {
   :root {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    --card: 224 71% 7%;
-    --card-foreground: 213 31% 91%;
-    --popover: 224 71% 7%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 239 84% 67%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 222 47% 13%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 223 47% 11%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 222 47% 15%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 239 84% 67%;
+    --background: #F7F3F4;
+    --foreground: #302A2D;
+    --sidebar: #EFE6E9;
+    --card: #FBF8F9;
+    --primary: #6D4C5B;
+    --primary-hover: #5B3D4A;
+    --primary-active: #4D323E;
+    --primary-foreground: #FFFFFF;
+    --secondary: #A66A7A;
+    --secondary-hover: #91596A;
+    --secondary-foreground: #FFFFFF;
+    --accent: #D98C9A;
+    --accent-soft: #E8B6BF;
+    --accent-foreground: #302A2D;
+    --border: #DED2D6;
+    --subtle-border: #E8DEE1;
+    --input: #FFFFFF;
+    --muted: #766B70;
+    --muted-foreground: #9A8E94;
+    --ring: #A66A7A;
+    --popover: #FBF8F9;
     --radius: 0.75rem;
+    
+    --online: #5F8F72;
+    --offline: #9A8E94;
+    --warning: #C49A5A;
+    --error: #B85C63;
+  }
+
+  .dark {
+    --background: #241F22;
+    --foreground: #F4ECEF;
+    --sidebar: #2D2529;
+    --card: #352B30;
+    --primary: #A66A7A;
+    --primary-hover: #91596A;
+    --primary-active: #7A4555;
+    --primary-foreground: #FFFFFF;
+    --secondary: #6D4C5B;
+    --secondary-hover: #5B3D4A;
+    --secondary-foreground: #FFFFFF;
+    --accent: #D98C9A;
+    --accent-soft: #E8B6BF;
+    --accent-foreground: #241F22;
+    --border: #4A3B41;
+    --subtle-border: #3A2F33;
+    --input: #2D2529;
+    --muted: #B9AEB3;
+    --muted-foreground: #9A8E94;
+    --ring: #D98C9A;
+    --popover: #352B30;
+    
+    --online: #5F8F72;
+    --offline: #9A8E94;
+    --warning: #C49A5A;
+    --error: #B85C63;
   }
 }
 

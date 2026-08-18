@@ -16,7 +16,6 @@ export default function CallsPage() {
   
   const [callHistory, setCallHistory] = useState<Call[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showNewCall, setShowNewCall] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
@@ -42,7 +41,6 @@ export default function CallsPage() {
       setFilteredUsers([]);
       return;
     }
-
     try {
       const res = await usersApi.getAllUsers({ search: term, isActive: true });
       setFilteredUsers(res.data.filter((u: any) => u.id !== user?.id));
@@ -62,18 +60,15 @@ export default function CallsPage() {
       alert('Please select at least one participant');
       return;
     }
-
     try {
       const res = await callsApi.createCall({
         type: callType,
         participantIds: selectedParticipants,
       });
-
-      // Navigate to active call page
       router.push(`/dashboard/calls/${res.data.id}`);
     } catch (error) {
       console.error('Failed to start call:', error);
-      alert('Failed to start call');
+      alert('Failed to start call. Please try again.');
     }
   };
 
@@ -90,61 +85,77 @@ export default function CallsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 rounded-full border-2 border-[#6D4C5B] border-t-transparent animate-spin" />
+          <span className="text-xs text-muted-foreground font-medium">Loading call history...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-[calc(100vh-8rem)] bg-background text-foreground transition-colors duration-200">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-6 flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/dashboard')}
+            className="border-border bg-card hover:bg-sidebar text-foreground h-9 px-3 rounded-lg"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1.5" />
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Calls</h1>
-            <p className="text-gray-600 dark:text-gray-400">Audio and video meetings</p>
+            <h1 className="text-xl font-bold text-foreground">Audio & Video Calls</h1>
+            <p className="text-muted-foreground text-xs">Start HD calls and view your call history</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Start New Call */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="w-5 h-5" />
+          <Card className="border border-border bg-card shadow-sm rounded-2xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#6D4C5B] dark:text-[#D98C9A]" />
                 Start New Call
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Button
-                  variant={callType === 'VIDEO' ? 'default' : 'outline'}
+              {/* Call Type Toggle */}
+              <div className="flex gap-2 p-1 bg-sidebar rounded-xl border border-border">
+                <button
                   onClick={() => setCallType('VIDEO')}
-                  className="flex-1"
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    callType === 'VIDEO'
+                      ? 'bg-[#6D4C5B] text-white shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  <Video className="w-4 h-4 mr-2" />
+                  <Video className="w-3.5 h-3.5" />
                   Video Call
-                </Button>
-                <Button
-                  variant={callType === 'AUDIO' ? 'default' : 'outline'}
+                </button>
+                <button
                   onClick={() => setCallType('AUDIO')}
-                  className="flex-1"
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    callType === 'AUDIO'
+                      ? 'bg-[#6D4C5B] text-white shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  <Phone className="w-4 h-4 mr-2" />
+                  <Phone className="w-3.5 h-3.5" />
                   Audio Call
-                </Button>
+                </button>
               </div>
 
+              {/* Search Participants */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search participants..."
-                  className="pl-10"
+                  className="pl-10 text-xs bg-input border-border focus:border-[#A66A7A] h-10 rounded-xl"
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -153,19 +164,20 @@ export default function CallsPage() {
                 />
               </div>
 
+              {/* Selected participants */}
               {selectedParticipants.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {filteredUsers
                     .filter((u) => selectedParticipants.includes(u.id))
                     .map((u) => (
                       <span
                         key={u.id}
-                        className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-md text-sm flex items-center gap-1"
+                        className="bg-[#6D4C5B]/10 border border-[#6D4C5B]/20 text-[#6D4C5B] dark:text-[#E8B6BF] px-2.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1"
                       >
                         {u.name}
                         <button
                           onClick={() => toggleParticipant(u.id)}
-                          className="hover:text-blue-600 dark:hover:text-blue-300"
+                          className="hover:text-[#B85C63] font-bold ml-0.5"
                         >
                           ×
                         </button>
@@ -174,13 +186,14 @@ export default function CallsPage() {
                 </div>
               )}
 
+              {/* Search Results */}
               {filteredUsers.length > 0 && (
-                <div className="max-h-40 overflow-y-auto border rounded-md">
+                <div className="max-h-40 overflow-y-auto border border-border rounded-xl bg-background p-1 space-y-0.5">
                   {filteredUsers.map((u) => (
                     <div
                       key={u.id}
-                      className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer flex items-center gap-2 ${
-                        selectedParticipants.includes(u.id) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                      className={`p-2 rounded-lg hover:bg-sidebar cursor-pointer flex items-center gap-2 text-xs transition-colors ${
+                        selectedParticipants.includes(u.id) ? 'bg-[#6D4C5B]/5' : ''
                       }`}
                       onClick={() => toggleParticipant(u.id)}
                     >
@@ -188,16 +201,23 @@ export default function CallsPage() {
                         type="checkbox"
                         checked={selectedParticipants.includes(u.id)}
                         onChange={() => toggleParticipant(u.id)}
-                        className="pointer-events-none"
+                        className="rounded border-border pointer-events-none w-3 h-3"
                       />
-                      <span>{u.name}</span>
-                      <span className="text-sm text-gray-500">({u.employeeId})</span>
+                      <div className="w-6 h-6 rounded-full bg-[#6D4C5B]/10 text-[#6D4C5B] dark:text-[#E8B6BF] flex items-center justify-center font-bold text-[9px] uppercase">
+                        {u.name.charAt(0)}
+                      </div>
+                      <span className="font-semibold text-foreground">{u.name}</span>
+                      <span className="text-muted-foreground text-[10px]">({u.employeeId})</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              <Button onClick={handleStartCall} className="w-full" disabled={selectedParticipants.length === 0}>
+              <Button
+                onClick={handleStartCall}
+                disabled={selectedParticipants.length === 0}
+                className="w-full bg-[#6D4C5B] hover:bg-[#5B3D4A] text-white rounded-xl text-xs h-10 font-semibold disabled:opacity-50"
+              >
                 {callType === 'VIDEO' ? (
                   <>
                     <Video className="w-4 h-4 mr-2" />
@@ -210,46 +230,58 @@ export default function CallsPage() {
                   </>
                 )}
               </Button>
+
+              {selectedParticipants.length === 0 && (
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Search and select at least one participant above to start
+                </p>
+              )}
             </CardContent>
           </Card>
 
           {/* Call History */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
+          <Card className="border border-border bg-card shadow-sm rounded-2xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#A66A7A]" />
                 Call History
               </CardTitle>
             </CardHeader>
             <CardContent>
               {callHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-                  No call history yet
+                <div className="text-center py-8 space-y-2">
+                  <Phone className="w-10 h-10 mx-auto text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground font-medium">No call history yet</p>
+                  <p className="text-[10px] text-muted-foreground">Start a call to see it here</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-96 overflow-y-auto">
                   {callHistory.map((call) => (
                     <div
                       key={call.id}
-                      className="p-3 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                      className="p-3 border border-border rounded-xl hover:bg-sidebar/50 cursor-pointer transition-colors"
                       onClick={() => handleJoinCall(call.id)}
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           {call.type === 'VIDEO' ? (
-                            <Video className="w-4 h-4 text-green-600" />
+                            <div className="w-7 h-7 rounded-lg bg-[#5F8F72]/10 text-[#5F8F72] flex items-center justify-center">
+                              <Video className="w-3.5 h-3.5" />
+                            </div>
                           ) : (
-                            <Phone className="w-4 h-4 text-blue-600" />
+                            <div className="w-7 h-7 rounded-lg bg-[#6D4C5B]/10 text-[#6D4C5B] dark:text-[#D98C9A] flex items-center justify-center">
+                              <Phone className="w-3.5 h-3.5" />
+                            </div>
                           )}
-                          <span className="font-medium">
+                          <span className="text-xs font-semibold text-foreground">
                             {call.initiatorId === user?.id ? 'You initiated' : `${call.participants[0]?.user?.name || 'A user'} initiated`}
                           </span>
                         </div>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="text-[10px] text-muted-foreground">
                           {new Date(call.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
                           <span>{call.participants?.length || 0} participants</span>
@@ -263,12 +295,12 @@ export default function CallsPage() {
                       </div>
                       <div className="mt-2">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`px-2 py-0.5 rounded-full text-[9px] font-semibold ${
                             call.status === 'ENDED'
-                              ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                              ? 'bg-sidebar text-muted-foreground border border-border'
                               : call.status === 'ONGOING'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              ? 'bg-[#5F8F72]/15 text-[#5F8F72] border border-[#5F8F72]/30'
+                              : 'bg-[#C49A5A]/15 text-[#C49A5A] border border-[#C49A5A]/30'
                           }`}
                         >
                           {call.status}

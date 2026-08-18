@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/auth-api';
 import { useAuthStore } from '@/store/auth-store';
@@ -26,6 +26,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('Password123!');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }, []);
 
   const handleDemoSelect = (id: string, pass: string) => {
     setEmployeeId(id);
@@ -59,41 +64,41 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-slate-950 px-4 py-12 overflow-hidden">
+    <div className="min-h-screen relative flex items-center justify-center bg-background text-foreground px-4 py-12 overflow-hidden transition-colors duration-200">
       {/* Background Decorative Mesh Gradients */}
-      <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-indigo-600/20 blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-purple-600/20 blur-[130px] pointer-events-none" />
-      <div className="absolute top-[40%] right-[30%] w-[25%] h-[25%] rounded-full bg-blue-600/10 blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-[#6D4C5B]/10 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-[#A66A7A]/10 blur-[130px] pointer-events-none" />
+      <div className="absolute top-[40%] right-[30%] w-[25%] h-[25%] rounded-full bg-[#D98C9A]/5 blur-[100px] pointer-events-none" />
 
       {/* Main Login Card */}
       <div className="relative w-full max-w-md z-10">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 shadow-xl shadow-indigo-500/30 mb-4 border border-indigo-400/30">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#6D4C5B] via-[#A66A7A] to-[#D98C9A] shadow-xl mb-4 border border-[#E8B6BF]/30">
             <span className="text-2xl font-black text-white">S</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
             Stitch Enterprise
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1.5 flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-[#5F8F72]" />
             Secure Enterprise Collaboration & AI Hub
           </p>
         </div>
 
         {/* Card Box */}
-        <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-xl">
+        <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border shadow-xl backdrop-blur-xl">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-white">Sign In</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h2 className="text-lg font-bold text-foreground">Sign In</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Enter your assigned employee credentials below.
             </p>
           </div>
 
           {/* 1-Click Demo Account Quick Fill */}
-          <div className="mb-6 p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+          <div className="mb-6 p-3 rounded-xl bg-background/50 border border-border">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-[#C49A5A]" />
               1-Click Demo Accounts:
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -102,14 +107,14 @@ export default function LoginPage() {
                 onClick={() => handleDemoSelect('ADM001', 'Password123!')}
                 className={`text-left p-2 rounded-lg text-xs transition-all border ${
                   employeeId === 'ADM001'
-                    ? 'bg-indigo-950/70 border-indigo-500/50 text-indigo-200'
-                    : 'bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                    ? 'bg-[#6D4C5B]/10 border-[#6D4C5B] text-[#6D4C5B] font-semibold'
+                    : 'bg-background border-border text-foreground hover:bg-[#E8DCE0]'
                 }`}
               >
                 <div className="font-semibold flex items-center gap-1 text-[11px]">
-                  <Sparkles className="w-3 h-3 text-indigo-400" /> Admin
+                  <Sparkles className="w-3 h-3 text-[#A66A7A]" /> Admin
                 </div>
-                <span className="text-[10px] text-slate-400">ADM001</span>
+                <span className="text-[10px] text-muted-foreground">ADM001</span>
               </button>
 
               <button
@@ -117,14 +122,14 @@ export default function LoginPage() {
                 onClick={() => handleDemoSelect('DEV001', 'Password123!')}
                 className={`text-left p-2 rounded-lg text-xs transition-all border ${
                   employeeId === 'DEV001'
-                    ? 'bg-indigo-950/70 border-indigo-500/50 text-indigo-200'
-                    : 'bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                    ? 'bg-[#6D4C5B]/10 border-[#6D4C5B] text-[#6D4C5B] font-semibold'
+                    : 'bg-background border-border text-foreground hover:bg-[#E8DCE0]'
                 }`}
               >
                 <div className="font-semibold flex items-center gap-1 text-[11px]">
-                  <Code2 className="w-3 h-3 text-blue-400" /> Engineering
+                  <Code2 className="w-3 h-3 text-[#A66A7A]" /> Engineering
                 </div>
-                <span className="text-[10px] text-slate-400">DEV001</span>
+                <span className="text-[10px] text-muted-foreground">DEV001</span>
               </button>
 
               <button
@@ -132,14 +137,14 @@ export default function LoginPage() {
                 onClick={() => handleDemoSelect('FIN001', 'Password123!')}
                 className={`text-left p-2 rounded-lg text-xs transition-all border ${
                   employeeId === 'FIN001'
-                    ? 'bg-indigo-950/70 border-indigo-500/50 text-indigo-200'
-                    : 'bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                    ? 'bg-[#6D4C5B]/10 border-[#6D4C5B] text-[#6D4C5B] font-semibold'
+                    : 'bg-background border-border text-foreground hover:bg-[#E8DCE0]'
                 }`}
               >
                 <div className="font-semibold flex items-center gap-1 text-[11px]">
-                  <PieChart className="w-3 h-3 text-emerald-400" /> Finance
+                  <PieChart className="w-3 h-3 text-[#A66A7A]" /> Finance
                 </div>
-                <span className="text-[10px] text-slate-400">FIN001</span>
+                <span className="text-[10px] text-muted-foreground">FIN001</span>
               </button>
 
               <button
@@ -147,14 +152,14 @@ export default function LoginPage() {
                 onClick={() => handleDemoSelect('DEV002', 'Password123!')}
                 className={`text-left p-2 rounded-lg text-xs transition-all border ${
                   employeeId === 'DEV002'
-                    ? 'bg-indigo-950/70 border-indigo-500/50 text-indigo-200'
-                    : 'bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                    ? 'bg-[#6D4C5B]/10 border-[#6D4C5B] text-[#6D4C5B] font-semibold'
+                    : 'bg-background border-border text-foreground hover:bg-[#E8DCE0]'
                 }`}
               >
                 <div className="font-semibold flex items-center gap-1 text-[11px]">
-                  <UserCheck className="w-3 h-3 text-purple-400" /> Designer
+                  <UserCheck className="w-3 h-3 text-[#A66A7A]" /> Designer
                 </div>
-                <span className="text-[10px] text-slate-400">DEV002</span>
+                <span className="text-[10px] text-muted-foreground">DEV002</span>
               </button>
             </div>
           </div>
@@ -162,7 +167,7 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="employeeId" className="text-xs font-semibold text-slate-300">
+              <Label htmlFor="employeeId" className="text-xs font-semibold text-foreground">
                 Employee ID
               </Label>
               <div className="relative">
@@ -174,13 +179,13 @@ export default function LoginPage() {
                   onChange={(e) => setEmployeeId(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="bg-slate-900/90 border-slate-700/80 text-white placeholder:text-slate-500 text-sm focus:border-indigo-500 focus:ring-indigo-500/20 h-11"
+                  className="bg-input border-border text-foreground placeholder:text-muted-foreground/60 text-sm focus:border-[#A66A7A] focus:ring-[#A66A7A]/20 h-11"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs font-semibold text-slate-300">
+              <Label htmlFor="password" className="text-xs font-semibold text-foreground">
                 Password
               </Label>
               <div className="relative">
@@ -192,14 +197,14 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="bg-slate-900/90 border-slate-700/80 text-white placeholder:text-slate-500 text-sm focus:border-indigo-500 focus:ring-indigo-500/20 h-11"
+                  className="bg-input border-border text-foreground placeholder:text-muted-foreground/60 text-sm focus:border-[#A66A7A] focus:ring-[#A66A7A]/20 h-11"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="text-xs font-medium text-red-300 bg-red-950/60 border border-red-800/60 p-3 rounded-xl flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+              <div className="text-xs font-medium text-[#B85C63] bg-[#B85C63]/10 border border-[#B85C63]/30 p-3 rounded-xl flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#B85C63] shrink-0" />
                 {error}
               </div>
             )}
@@ -207,10 +212,10 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30 transition-all text-sm mt-2"
+              className="w-full h-11 bg-[#6D4C5B] hover:bg-[#5B3D4A] text-white font-semibold rounded-xl shadow-md transition-all text-sm mt-2"
             >
               {isLoading ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                   <span>Authenticating...</span>
                 </div>
@@ -225,7 +230,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-[11px] text-slate-500 mt-6">
+        <p className="text-center text-[11px] text-muted-foreground mt-6">
           Encrypted TLS 1.3 • Role-Based Access Control • Stitch Security
         </p>
       </div>

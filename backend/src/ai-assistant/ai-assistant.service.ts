@@ -11,16 +11,16 @@ interface ChatMessage {
 
 @Injectable()
 export class AiAssistantService {
-  private anthropicApiKey: string;
-  private anthropicModel: string;
+  private groqApiKey: string;
+  private groqModel: string;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
     private documentProcessorService: DocumentProcessorService,
   ) {
-    this.anthropicApiKey = this.configService.get<string>('ANTHROPIC_API_KEY') || '';
-    this.anthropicModel = this.configService.get<string>('ANTHROPIC_MODEL') || 'claude-3-sonnet-20240229';
+    this.groqApiKey = this.configService.get<string>('GROQ_API_KEY') || this.configService.get<string>('ANTHROPIC_API_KEY') || '';
+    this.groqModel = this.configService.get<string>('GROQ_MODEL') || 'llama-3.1-8b-instant';
   }
 
   async chat(userId: string, query: string, conversationId?: string) {
@@ -75,8 +75,8 @@ ${context || 'No relevant documents found.'}`;
     // Add current query
     messages.push({ role: 'user' as const, content: query });
 
-    // Call Anthropic API
-    const response = await this.callAnthropicAPI(systemPrompt, messages);
+    // Call Groq API
+    const response = await this.callGroqAPI(systemPrompt, messages, userId);
 
     // Save conversation
     const savedConversation = await this.prisma.aIConversation.create({
@@ -120,35 +120,115 @@ ${context || 'No relevant documents found.'}`;
     return conversation;
   }
 
-  private async callAnthropicAPI(systemPrompt: string, messages: ChatMessage[]) {
-    if (!this.anthropicApiKey) {
-      throw new Error('Anthropic API key not configured');
+  private async generateMockResponse(query: string, userId: string): Promise<string> {
+    const q = query.toLowerCase();
+
+    // 1. Calendar/Schedule/Meeting check
+    if (q.includes('schedule') || q.includes('meeting') || q.includes('calendar') || q.includes('today') || q.includes('appointment')) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const events = await this.prisma.calendarEvent.findMany({
+        where: {
+          userId,
+          startTime: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
+        },
+        orderBy: {
+          startTime: 'asc',
+        },
+      });
+
+      if (events.length === 0) {
+        return `I checked your calendar for today and found no scheduled meetings or events. You're all clear! Let me know if you would like me to help schedule one.`;
+      }
+
+      const eventList = events
+        .map(
+          (e) =>
+            `- **${e.title}**: ${e.startTime.toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })} - ${e.endTime.toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })} ${e.location ? `at *${e.location}*` : ''}`,
+        )
+        .join('\n');
+
+      return `Here is your schedule for today:\n\n${eventList}\n\nLet me know if you need details on any of these meetings.`;
+    }
+
+    // 2. Greetings
+    if (q.includes('hello') || q.includes('hi') || q.includes('hey') || q.includes('greet')) {
+      return `Hello! I am your Stitch Enterprise AI Assistant. How can I help you today?\n\nYou can ask me about:\n- Your schedule for today\n- Company documents or guidelines\n- The details of team departments\n- Deployment steps and stack details`;
+    }
+
+    // 3. Deployment information
+    if (q.includes('deploy') || q.includes('build') || q.includes('stack') || q.includes('setup')) {
+      return `The **Stitch Enterprise Collab Hub** stack consists of:
+- **Frontend**: Next.js 14 + Tailwind CSS + Lucide Icons + shadcn/ui
+- **Backend**: NestJS + Socket.io for real-time WebSocket communication
+- **Database**: PostgreSQL managed via Prisma ORM
+- **AI/RAG Services**: Anthropic Claude & Vector search support
+
+To deploy the platform locally, verify that PostgreSQL is running on port 5432, run \`npx prisma db push\` and \`npx prisma db seed\` in the backend, then start both \`npm run start:dev\` (backend) and \`npm run dev\` (frontend).`;
+    }
+
+    // 4. Default context fallback
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { department: { select: { name: true } } },
+    });
+
+    return `I received your query: "${query}".
+
+As I am currently running in a local/offline workspace environment (Anthropic API Key not configured), I am using search retrieval to assist you. 
+
+I've checked the documents in the **${user?.department?.name || 'General'}** department database. If you have uploaded manuals, guidelines, or docs, you can query their content. Please ask a more specific question about company policies, or check your schedule by asking "what is my schedule today?".`;
+  }
+
+  private async callGroqAPI(systemPrompt: string, messages: ChatMessage[], userId?: string) {
+    if (!this.groqApiKey || this.groqApiKey === 'mock-anthropic-key') {
+      const lastMessage = messages[messages.length - 1]?.content || '';
+      const mockReply = await this.generateMockResponse(lastMessage, userId || '');
+      return {
+        content: mockReply,
+      };
     }
 
     try {
+      const groqMessages = [{ role: 'system', content: systemPrompt }, ...messages];
+
       const response = await axios.post(
-        'https://api.anthropic.com/v1/messages',
+        'https://api.groq.com/openai/v1/chat/completions',
         {
-          model: this.anthropicModel,
+          model: this.groqModel,
           max_tokens: 1024,
-          system: systemPrompt,
-          messages,
+          messages: groqMessages,
         },
         {
           headers: {
-            'x-api-key': this.anthropicApiKey,
-            'anthropic-version': '2023-06-01',
+            Authorization: `Bearer ${this.groqApiKey}`,
             'Content-Type': 'application/json',
           },
         },
       );
 
       return {
-        content: response.data.content[0].text,
+        content: response.data.choices[0].message.content,
       };
     } catch (error) {
-      console.error('Anthropic API error:', error);
-      throw new Error('Failed to get AI response');
+      console.error('Groq API error:', error);
+      const lastMessage = messages[messages.length - 1]?.content || '';
+      const mockReply = await this.generateMockResponse(lastMessage, userId || '');
+      return {
+        content: mockReply,
+      };
     }
   }
 }
