@@ -9,7 +9,7 @@ import { getSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { ArrowLeft, Send, Plus, Search, MoreVertical, Phone, Video, Info, FileText } from 'lucide-react';
+import { ArrowLeft, Send, Plus, Search, MoreVertical, Phone, Video, Info, FileText, MessageSquare } from 'lucide-react';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -569,7 +569,7 @@ export default function ChatPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-foreground truncate text-[11px]">{p.user.name}</p>
-                      <p className="text-[8px] text-muted-foreground uppercase">{p.user.role.toLowerCase()}</p>
+                      <p className="text-[8px] text-muted-foreground uppercase">{((p.user as any).role ?? 'member').toLowerCase()}</p>
                     </div>
                     {p.user.id === user?.id && (
                       <span className="text-[8px] bg-sidebar text-muted-foreground px-1 py-0.2 rounded border border-border">You</span>

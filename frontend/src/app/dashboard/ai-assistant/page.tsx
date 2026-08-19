@@ -98,7 +98,7 @@ export default function AIAssistantPage() {
                 AI Workspace Assistant
               </h1>
               <p className="text-muted-foreground text-xs">
-                Query enterprise documents, policies, or get today's personal schedule
+                Query enterprise documents, policies, or get your personal schedule for today
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function AIAssistantPage() {
                   <p className="text-muted-foreground text-xs leading-relaxed">
                     Ask me anything about company documents, policies, or procedures.
                     I search our secure knowledge repository to provide contextual, cited answers.
-                    You can also ask **"what is my schedule today?"** to view your events.
+                    You can also ask <strong>&quot;what is my schedule today?&quot;</strong> to view your events.
                   </p>
                 </div>
               </div>
