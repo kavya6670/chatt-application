@@ -16,10 +16,15 @@ class SendMessageDto {
   attachments?: string[];
 }
 
+import { ChatGateway } from './chat.gateway';
+
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 export class ChatController {
-  constructor(private chatService: ChatService) {}
+  constructor(
+    private chatService: ChatService,
+    private chatGateway: ChatGateway,
+  ) {}
 
   @Get('conversations')
   async getConversations(@Request() req) {
@@ -53,7 +58,15 @@ export class ChatController {
 
   @Post('messages')
   async sendMessage(@Request() req, @Body() sendMessageDto: SendMessageDto) {
-    return this.chatService.sendMessage(req.user.sub, sendMessageDto);
+    const message = await this.chatService.sendMessage(req.user.sub, sendMessageDto);
+    try {
+      if (this.chatGateway.server) {
+        this.chatGateway.server.to(`conversation:${sendMessageDto.conversationId}`).emit('message:new', message);
+      }
+    } catch (e) {
+      // non-critical socket notification failure
+    }
+    return message;
   }
 
   @Put('conversations/:id/read')

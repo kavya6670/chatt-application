@@ -127,16 +127,21 @@ export default function ChatPage() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || isSending) return;
 
+    const messageText = newMessage.trim();
     setIsSending(true);
     try {
       const res = await chatApi.sendMessage({
         conversationId: selectedConversation.id,
-        content: newMessage,
+        content: messageText,
       });
-      setMessages((prev) => [...prev, res.data]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === res.data.id)) return prev;
+        return [...prev, res.data];
+      });
       setNewMessage('');
       
       await chatApi.markAsRead(selectedConversation.id);
+      loadConversations();
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
@@ -144,7 +149,7 @@ export default function ChatPage() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -489,23 +494,29 @@ export default function ChatPage() {
 
             {/* Input Composer */}
             <div className="bg-background border-t border-border p-4 shrink-0 transition-colors">
-              <div className="flex items-center gap-2 max-w-5xl mx-auto">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="flex items-center gap-2 max-w-5xl mx-auto"
+              >
                 <Input
                   placeholder="Type your message here..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyDown}
                   disabled={isSending}
                   className="bg-input border-border text-foreground placeholder:text-muted-foreground/60 text-xs focus:border-[#A66A7A] focus:ring-[#A66A7A]/20 rounded-xl h-10 flex-1"
                 />
                 <Button
-                  onClick={handleSendMessage}
+                  type="submit"
                   disabled={isSending || !newMessage.trim()}
                   className="bg-[#6D4C5B] hover:bg-[#5B3D4A] active:bg-[#4D323E] text-white rounded-xl w-10 h-10 p-0 shadow-md shrink-0 flex items-center justify-center transition-all"
                 >
                   <Send className="w-4 h-4 text-white" />
                 </Button>
-              </div>
+              </form>
             </div>
           </>
         ) : (
