@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CallType, CallStatus } from '@prisma/client';
 
@@ -26,6 +26,30 @@ export class CallsService {
   async createCall(userId: string, createCallDto: CreateCallDto) {
     const { type, conversationId, participantIds } = createCallDto;
 
+    const normalizedParticipantIds = [...new Set(participantIds || [])].filter((id) => id && id !== userId);
+
+    if (normalizedParticipantIds.length !== (participantIds || []).length) {
+      throw new BadRequestException('Participant IDs must be unique and cannot include the initiator.');
+    }
+
+    const existingUsers = await this.prisma.user.findMany({
+      where: {
+        id: {
+          in: normalizedParticipantIds,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const existingUserIds = new Set(existingUsers.map((user) => user.id));
+    const invalidIds = normalizedParticipantIds.filter((id) => !existingUserIds.has(id));
+
+    if (invalidIds.length > 0) {
+      throw new BadRequestException(`One or more participant IDs are invalid: ${invalidIds.join(', ')}`);
+    }
+
     // Create the call record
     const call = await this.prisma.call.create({
       data: {
@@ -36,7 +60,7 @@ export class CallsService {
         participants: {
           create: [
             { userId },
-            ...participantIds.map((id) => ({ userId: id })),
+            ...normalizedParticipantIds.map((id) => ({ userId: id })),
           ],
         },
       },
