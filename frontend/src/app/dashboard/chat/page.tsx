@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { chatApi, Conversation, Message } from '@/lib/chat-api';
+import { getApiUrl } from '@/lib/api';
 import { usersApi } from '@/lib/users-api';
 import { getSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
@@ -142,8 +143,10 @@ export default function ChatPage() {
       
       await chatApi.markAsRead(selectedConversation.id);
       loadConversations();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send message:', error);
+      const errMsg = error.response?.data?.message || error.message || 'Failed to send message';
+      alert(`Could not send message: ${errMsg}\nTarget Backend: ${getApiUrl()}`);
     } finally {
       setIsSending(false);
     }

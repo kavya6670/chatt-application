@@ -1,16 +1,41 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+export const getApiUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const customApi = localStorage.getItem('custom_api_url');
+    if (customApi) return customApi;
+
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl && !envUrl.includes('localhost')) {
+      return envUrl.startsWith('http') ? envUrl : `https://${envUrl}`;
+    }
+
+    const host = window.location.hostname;
+    if (host.includes('onrender.com')) {
+      if (host.includes('-frontend.')) {
+        return `https://${host.replace('-frontend.', '-backend.')}`;
+      }
+      if (host.includes('frontend')) {
+        return `https://${host.replace('frontend', 'backend')}`;
+      }
+    }
+
+    if (envUrl) {
+      return envUrl.startsWith('http') ? envUrl : `https://${envUrl}`;
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+};
 
 const api = axios.create({
-  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add auth token to requests
+// Dynamically set baseURL and auth token on every request
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiUrl();
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
     if (token) {
