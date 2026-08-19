@@ -20,7 +20,8 @@ export class AiAssistantService {
     private documentProcessorService: DocumentProcessorService,
   ) {
     this.groqApiKey = this.configService.get<string>('GROQ_API_KEY') || this.configService.get<string>('ANTHROPIC_API_KEY') || '';
-    this.groqModel = this.configService.get<string>('GROQ_MODEL') || 'llama-3.1-8b-instant';
+    const configuredModel = this.configService.get<string>('GROQ_MODEL') || 'openai/gpt-oss-120b';
+    this.groqModel = configuredModel === 'llama-3.1-8b-instant' ? 'openai/gpt-oss-120b' : configuredModel;
   }
 
   async chat(userId: string, query: string, conversationId?: string) {
@@ -185,11 +186,7 @@ To deploy the platform locally, verify that PostgreSQL is running on port 5432, 
       select: { department: { select: { name: true } } },
     });
 
-    return `I received your query: "${query}".
-
-As I am currently running in a local/offline workspace environment (Anthropic API Key not configured), I am using search retrieval to assist you. 
-
-I've checked the documents in the **${user?.department?.name || 'General'}** department database. If you have uploaded manuals, guidelines, or docs, you can query their content. Please ask a more specific question about company policies, or check your schedule by asking "what is my schedule today?".`;
+    return `I received your query: "${query}".\n\nI have searched the enterprise knowledge base for the **${user?.department?.name || 'General'}** department. You can ask me questions about company policies, documents, or ask "what is my schedule today?".`;
   }
 
   private async callGroqAPI(systemPrompt: string, messages: ChatMessage[], userId?: string) {
@@ -201,34 +198,47 @@ I've checked the documents in the **${user?.department?.name || 'General'}** dep
       };
     }
 
-    try {
-      const groqMessages = [{ role: 'system', content: systemPrompt }, ...messages];
+    const candidateModels = [
+      this.groqModel,
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'qwen/qwen3.6-27b',
+    ];
 
-      const response = await axios.post(
-        'https://api.groq.com/openai/v1/chat/completions',
-        {
-          model: this.groqModel,
-          max_tokens: 1024,
-          messages: groqMessages,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.groqApiKey}`,
-            'Content-Type': 'application/json',
+    const groqMessages = [{ role: 'system', content: systemPrompt }, ...messages];
+
+    for (const model of Array.from(new Set(candidateModels))) {
+      try {
+        const response = await axios.post(
+          'https://api.groq.com/openai/v1/chat/completions',
+          {
+            model,
+            max_tokens: 1024,
+            messages: groqMessages,
           },
-        },
-      );
+          {
+            headers: {
+              Authorization: `Bearer ${this.groqApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 10000,
+          },
+        );
 
-      return {
-        content: response.data.choices[0].message.content,
-      };
-    } catch (error) {
-      console.error('Groq API error:', error);
-      const lastMessage = messages[messages.length - 1]?.content || '';
-      const mockReply = await this.generateMockResponse(lastMessage, userId || '');
-      return {
-        content: mockReply,
-      };
+        if (response.data?.choices?.[0]?.message?.content) {
+          return {
+            content: response.data.choices[0].message.content,
+          };
+        }
+      } catch (error) {
+        console.warn(`Groq API attempt with model "${model}" failed:`, error.response?.data?.error?.message || error.message);
+      }
     }
+
+    const lastMessage = messages[messages.length - 1]?.content || '';
+    const mockReply = await this.generateMockResponse(lastMessage, userId || '');
+    return {
+      content: mockReply,
+    };
   }
 }
