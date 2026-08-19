@@ -3,16 +3,35 @@ import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ConversationType } from '@prisma/client';
 
+import { IsString, IsNotEmpty, IsOptional, IsArray, IsEnum } from 'class-validator';
+
 class CreateConversationDto {
+  @IsEnum(ConversationType)
   type: ConversationType;
+
+  @IsString()
+  @IsOptional()
   name?: string;
+
+  @IsArray()
   participantIds: string[];
+
+  @IsString()
+  @IsOptional()
   departmentId?: string;
 }
 
 class SendMessageDto {
+  @IsString()
+  @IsNotEmpty()
   conversationId: string;
+
+  @IsString()
+  @IsNotEmpty()
   content: string;
+
+  @IsArray()
+  @IsOptional()
   attachments?: string[];
 }
 
