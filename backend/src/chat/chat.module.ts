@@ -6,6 +6,8 @@ import { ChatService } from './chat.service';
 import { ChatController } from './chat.controller';
 import { UsersModule } from '../users/users.module';
 
+import { MeetingDetectorService } from './meeting-detector.service';
+
 @Module({
   imports: [
     UsersModule,
@@ -20,7 +22,8 @@ import { UsersModule } from '../users/users.module';
       inject: [ConfigService],
     }),
   ],
-  providers: [ChatGateway, ChatService],
+  providers: [ChatGateway, ChatService, MeetingDetectorService],
   controllers: [ChatController],
+  exports: [ChatService, MeetingDetectorService],
 })
 export class ChatModule {}

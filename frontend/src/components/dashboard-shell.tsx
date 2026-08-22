@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
+import { getApiUrl } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
@@ -44,6 +45,19 @@ export function DashboardShell({ children }: DashboardShellProps) {
       setTheme(prefersDark ? 'dark' : 'light');
       document.documentElement.classList.toggle('dark', prefersDark);
     }
+
+    // Keep-alive heartbeat: ping backend every 10 minutes to prevent Render free instance sleep
+    const pingBackend = async () => {
+      try {
+        const url = getApiUrl();
+        await fetch(`${url}/health`, { method: 'GET', keepalive: true }).catch(() => {});
+      } catch (e) {
+        // Ignore network errors on background keepalive
+      }
+    };
+
+    const keepAliveTimer = setInterval(pingBackend, 10 * 60 * 1000);
+    return () => clearInterval(keepAliveTimer);
   }, []);
 
   const toggleTheme = () => {

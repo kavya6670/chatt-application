@@ -95,7 +95,8 @@ export default function ActiveCallPage() {
 
       setIsLoading(false);
     } catch (err: any) {
-      setError(err.message || 'Failed to join call');
+      const msg = err?.response?.data?.message || err?.message || 'Failed to join call';
+      setError(msg);
       setIsLoading(false);
     }
   };
@@ -233,10 +234,21 @@ export default function ActiveCallPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <p className="text-destructive mb-4">{error}</p>
-            <Button onClick={() => router.push('/dashboard/calls')}>Back to Calls</Button>
+        <Card className="max-w-md bg-gray-800 border-gray-700 text-white shadow-xl">
+          <CardContent className="pt-6 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 mx-auto flex items-center justify-center font-bold text-lg">
+              !
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg text-white">Call Connection Error</h3>
+              <p className="text-sm text-red-300 mt-1">{error}</p>
+            </div>
+            <div className="flex gap-2 justify-center pt-2">
+              <Button variant="outline" className="text-white border-gray-600 hover:bg-gray-700" onClick={() => { setError(''); setIsLoading(true); joinCall(); }}>
+                Retry
+              </Button>
+              <Button onClick={() => router.push('/dashboard/calls')}>Back to Calls</Button>
+            </div>
           </CardContent>
         </Card>
       </div>

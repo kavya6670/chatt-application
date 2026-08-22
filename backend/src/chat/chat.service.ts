@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationType } from '@prisma/client';
+import { MeetingDetectorService } from './meeting-detector.service';
 
 interface CreateConversationDto {
   type: ConversationType;
@@ -17,7 +18,10 @@ interface SendMessageDto {
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private meetingDetectorService: MeetingDetectorService,
+  ) {}
 
   async getUserConversations(userId: string) {
     const conversations = await this.prisma.conversation.findMany({
@@ -225,6 +229,11 @@ export class ChatService {
       where: { id: conversationId },
       data: { updatedAt: new Date() },
     });
+
+    // Detect meetings and auto-sync calendar in background
+    this.meetingDetectorService
+      .processMessageForMeetings(message.id, content, userId, conversationId)
+      .catch((err) => console.error('Meeting detection background error:', err));
 
     return message;
   }

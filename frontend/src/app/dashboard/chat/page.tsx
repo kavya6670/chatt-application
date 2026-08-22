@@ -10,7 +10,15 @@ import { getSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { ArrowLeft, Send, Plus, Search, MoreVertical, Phone, Video, Info, FileText, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Send, Plus, Search, MoreVertical, Phone, Video, Info, FileText, MessageSquare, Calendar, CalendarCheck } from 'lucide-react';
+
+const isMeetingMessage = (text: string) => {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  const hasKeyword = ['meet', 'meeting', 'sync', 'standup', 'huddle', 'retro', 'planning', 'catchup'].some((k) => lower.includes(k));
+  const hasTimeOrDate = ['am', 'pm', 'tomorrow', 'today', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'at ', 'o\'clock', ':00', ':30'].some((t) => lower.includes(t));
+  return hasKeyword && hasTimeOrDate;
+};
 
 export default function ChatPage() {
   const router = useRouter();
@@ -484,6 +492,32 @@ export default function ChatPage() {
                         }`}
                       >
                         <div className="break-words font-medium">{message.content}</div>
+
+                        {/* Auto-detected Meeting Card */}
+                        {isMeetingMessage(message.content) && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push('/dashboard/calendar');
+                            }}
+                            className={`mt-2.5 p-2 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-transform hover:scale-[1.01] ${
+                              isOwn
+                                ? 'bg-black/20 border-white/20 text-white'
+                                : 'bg-background/80 border-border text-foreground'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <CalendarCheck className={`w-3.5 h-3.5 shrink-0 ${isOwn ? 'text-white' : 'text-[#6D4C5B] dark:text-[#D98C9A]'}`} />
+                              <span className="text-[10px] font-semibold truncate">
+                                Meeting Detected • Synced to Calendar
+                              </span>
+                            </div>
+                            <span className="text-[9px] underline shrink-0 opacity-80 hover:opacity-100">
+                              View
+                            </span>
+                          </div>
+                        )}
+
                         <div className={`text-[9px] text-right mt-1.5 ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>
                           {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>

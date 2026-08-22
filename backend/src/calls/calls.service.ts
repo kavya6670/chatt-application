@@ -83,10 +83,27 @@ export class CallsService {
   }
 
   async joinCall(userId: string, joinCallDto: JoinCallDto) {
-    const call = await this.prisma.call.findUnique({
+    let call = await this.prisma.call.findUnique({
       where: { id: joinCallDto.callId },
       include: {
-        participants: true,
+        initiator: {
+          select: {
+            id: true,
+            name: true,
+            employeeId: true,
+          },
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                employeeId: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -94,10 +111,34 @@ export class CallsService {
       throw new NotFoundException('Call not found');
     }
 
-    // Check if user is a participant
+    // Check if user is a participant; if not, automatically join them to the call
     const isParticipant = call.participants.some((p) => p.userId === userId);
     if (!isParticipant) {
-      throw new NotFoundException('You are not a participant in this call');
+      try {
+        await this.prisma.callParticipant.create({
+          data: {
+            callId: call.id,
+            userId,
+          },
+        });
+      } catch (e) {
+        // Concurrently created or already exists
+      }
+    } else {
+      // Clear leftAt if previously left and now rejoining
+      try {
+        await this.prisma.callParticipant.updateMany({
+          where: {
+            callId: call.id,
+            userId,
+          },
+          data: {
+            leftAt: null,
+          },
+        });
+      } catch (e) {
+        // Ignore update error
+      }
     }
 
     // Update call status if first joiner
@@ -111,21 +152,34 @@ export class CallsService {
       });
     }
 
-    // Update participant join time
-    await this.prisma.callParticipant.updateMany({
-      where: {
-        callId: call.id,
-        userId,
-        joinedAt: null,
-      },
-      data: {
-        joinedAt: new Date(),
+    // Fetch latest call record with all participants
+    const updatedCall = await this.prisma.call.findUnique({
+      where: { id: joinCallDto.callId },
+      include: {
+        initiator: {
+          select: {
+            id: true,
+            name: true,
+            employeeId: true,
+          },
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                employeeId: true,
+              },
+            },
+          },
+        },
       },
     });
 
     return {
-      call,
-      // For WebRTC, we don't need tokens - signaling happens via Socket.IO
+      call: updatedCall || call,
+      // For WebRTC, signaling happens via Socket.IO
       signalingServer: process.env.BACKEND_URL || 'http://localhost:3001',
     };
   }

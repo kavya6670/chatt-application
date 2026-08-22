@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
+import { calendarApi, CalendarEvent } from '@/lib/calendar-api';
+import { chatApi } from '@/lib/chat-api';
 import { Button } from '@/components/ui/button';
 import {
   MessageSquare,
@@ -22,6 +24,7 @@ import {
   Send,
   LogOut,
   ChevronRight,
+  CalendarCheck,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -29,10 +32,34 @@ export default function DashboardPage() {
   const { user, logout } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [quickAiPrompt, setQuickAiPrompt] = useState('');
+  const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
+  const [conversationsCount, setConversationsCount] = useState<number>(0);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      const [eventsRes, convRes] = await Promise.allSettled([
+        calendarApi.getUpcomingEvents(4),
+        chatApi.getConversations(),
+      ]);
+
+      if (eventsRes.status === 'fulfilled') {
+        setUpcomingEvents(eventsRes.value.data);
+      }
+      if (convRes.status === 'fulfilled') {
+        setConversationsCount(convRes.value.data.length);
+      }
+    } catch (e) {
+      console.error('Error loading dashboard data:', e);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -55,8 +82,8 @@ export default function DashboardPage() {
   const statCards = [
     {
       title: 'Realtime Channels',
-      value: '4 Active',
-      subtext: 'Engineering, Design, General',
+      value: conversationsCount > 0 ? `${conversationsCount} Active` : 'Active',
+      subtext: '1:1 Chats & Group Channels',
       icon: MessageSquare,
       color: 'from-[#6D4C5B]/20 to-[#6D4C5B]/5 text-[#6D4C5B] dark:text-[#E8B6BF] border-[#6D4C5B]/30',
       actionUrl: '/dashboard/chat',
@@ -73,8 +100,8 @@ export default function DashboardPage() {
     },
     {
       title: 'Team Schedule',
-      value: '3 Upcoming',
-      subtext: 'Sprint Planning & Standups',
+      value: `${upcomingEvents.length} Upcoming`,
+      subtext: upcomingEvents.length > 0 ? upcomingEvents[0].title : 'Synced with chats & AI',
       icon: CalendarIcon,
       color: 'from-[#A66A7A]/20 to-[#A66A7A]/5 text-[#A66A7A] border-[#A66A7A]/30',
       actionUrl: '/dashboard/calendar',
@@ -82,8 +109,8 @@ export default function DashboardPage() {
     },
     {
       title: 'AI Intelligence',
-      value: 'Online',
-      subtext: 'RAG Knowledge Assistant',
+      value: 'Chat Aware',
+      subtext: 'Scans 1:1, groups & calendar',
       icon: Bot,
       color: 'from-[#C49A5A]/20 to-[#C49A5A]/5 text-[#C49A5A] border-[#C49A5A]/30',
       actionUrl: '/dashboard/ai-assistant',
@@ -300,7 +327,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[#A66A7A]" />
-                Upcoming Today
+                Upcoming Schedule
               </h4>
               <Link
                 href="/dashboard/calendar"
@@ -310,23 +337,55 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            <div className="space-y-3">
-              <div className="p-3 rounded-xl bg-background border border-border flex items-center gap-3">
-                <div className="w-2 h-8 rounded-full bg-[#6D4C5B]" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-foreground truncate">Daily Engineering Standup</p>
-                  <p className="text-[10px] text-muted-foreground">10:00 AM • Main Conference</p>
-                </div>
+            {upcomingEvents.length === 0 ? (
+              <div className="p-4 rounded-xl bg-background/50 border border-border text-center space-y-2">
+                <CalendarCheck className="w-6 h-6 text-muted-foreground/60 mx-auto" />
+                <p className="text-xs text-muted-foreground">
+                  No upcoming meetings right now.
+                </p>
+                <Link
+                  href="/dashboard/calendar"
+                  className="inline-block text-[11px] font-medium text-[#6D4C5B] dark:text-[#D98C9A] hover:underline"
+                >
+                  + Add an event
+                </Link>
               </div>
+            ) : (
+              <div className="space-y-2.5">
+                {upcomingEvents.slice(0, 3).map((event, idx) => {
+                  const startTime = new Date(event.startTime).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                  const dateStr = new Date(event.startTime).toLocaleDateString([], {
+                    month: 'short',
+                    day: 'numeric',
+                  });
 
-              <div className="p-3 rounded-xl bg-background border border-border flex items-center gap-3">
-                <div className="w-2 h-8 rounded-full bg-[#A66A7A]" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-foreground truncate">Sprint Retrospective</p>
-                  <p className="text-[10px] text-muted-foreground">03:30 PM • Team Room</p>
-                </div>
+                  return (
+                    <div
+                      key={event.id || idx}
+                      onClick={() => router.push('/dashboard/calendar')}
+                      className="p-3 rounded-xl bg-background border border-border flex items-center gap-3 cursor-pointer hover:border-[#6D4C5B]/40 transition-colors"
+                    >
+                      <div
+                        className={`w-2 h-8 rounded-full ${
+                          idx % 2 === 0 ? 'bg-[#6D4C5B]' : 'bg-[#A66A7A]'
+                        }`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">
+                          {event.title}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {dateStr} • {startTime} {event.location ? `• ${event.location}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

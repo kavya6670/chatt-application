@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { aiAssistantApi } from '@/lib/ai-assistant-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Send, Bot, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Bot, FileText, Loader2, Sparkles, MessageSquare, Calendar } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,6 +17,7 @@ interface Message {
 
 export default function AIAssistantPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuthStore();
   
   const [messages, setMessages] = useState<Message[]>([]);
@@ -24,6 +25,15 @@ export default function AIAssistantPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initialPromptHandled = useRef(false);
+
+  useEffect(() => {
+    const promptParam = searchParams.get('prompt');
+    if (promptParam && !initialPromptHandled.current) {
+      initialPromptHandled.current = true;
+      executePrompt(promptParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     scrollToBottom();
@@ -33,17 +43,15 @@ export default function AIAssistantPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const executePrompt = async (promptText: string) => {
+    if (!promptText.trim() || isLoading) return;
 
-    const userMessage = input.trim();
-    setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+    setMessages((prev) => [...prev, { role: 'user', content: promptText }]);
     setIsLoading(true);
 
     try {
       const res = await aiAssistantApi.chat({
-        query: userMessage,
+        query: promptText,
         conversationId: conversationId || undefined,
       });
 
@@ -62,12 +70,19 @@ export default function AIAssistantPage() {
         ...prev,
         {
           role: 'assistant',
-          content: 'I checked your workspace documents but encountered an error connecting to our deep reasoning model. Please verify your internet connection or ask about your schedule for today.',
+          content: 'I checked your workspace documents, chats, and calendar but encountered a temporary connection issue. Please verify your connection or try again.',
         },
       ]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSend = () => {
+    if (!input.trim() || isLoading) return;
+    const userMessage = input.trim();
+    setInput('');
+    executePrompt(userMessage);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -76,6 +91,29 @@ export default function AIAssistantPage() {
       handleSend();
     }
   };
+
+  const suggestedPrompts = [
+    {
+      title: 'Is there any meeting?',
+      desc: 'Checks calendar & chat discussions',
+      icon: Calendar,
+    },
+    {
+      title: 'What was discussed in team chats today?',
+      desc: 'Summarizes 1:1 and group messages',
+      icon: MessageSquare,
+    },
+    {
+      title: 'What is my schedule for today?',
+      desc: 'Lists today’s upcoming events',
+      icon: Sparkles,
+    },
+    {
+      title: 'What are the company deployment steps?',
+      desc: 'Queries knowledge base documents',
+      icon: FileText,
+    },
+  ];
 
   return (
     <div className="min-h-[calc(100vh-8rem)] bg-background text-foreground transition-colors duration-200">
@@ -98,7 +136,7 @@ export default function AIAssistantPage() {
                 AI Workspace Assistant
               </h1>
               <p className="text-muted-foreground text-xs">
-                Query enterprise documents, policies, or get your personal schedule for today
+                Connected to your 1-on-1 chats, group channels, calendar schedules, and knowledge base
               </p>
             </div>
           </div>
@@ -108,19 +146,37 @@ export default function AIAssistantPage() {
         <Card className="flex-1 flex flex-col overflow-hidden border border-border bg-card rounded-2xl shadow-sm">
           <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
             {messages.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-center p-8">
-                <div className="max-w-md space-y-3">
-                  <div className="w-16 h-16 rounded-2xl bg-[#6D4C5B]/10 flex items-center justify-center text-[#6D4C5B] dark:text-[#D98C9A] mx-auto mb-2">
-                    <Bot className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-sm font-bold text-foreground">
-                    Welcome to Stitch AI Assistant
-                  </h3>
-                  <p className="text-muted-foreground text-xs leading-relaxed">
-                    Ask me anything about company documents, policies, or procedures.
-                    I search our secure knowledge repository to provide contextual, cited answers.
-                    You can also ask <strong>&quot;what is my schedule today?&quot;</strong> to view your events.
-                  </p>
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 max-w-xl mx-auto">
+                <div className="w-14 h-14 rounded-2xl bg-[#6D4C5B]/10 flex items-center justify-center text-[#6D4C5B] dark:text-[#D98C9A] mb-3">
+                  <Bot className="w-7 h-7" />
+                </div>
+                <h3 className="text-sm font-bold text-foreground mb-1">
+                  Stitch Intelligence Assistant
+                </h3>
+                <p className="text-muted-foreground text-xs leading-relaxed mb-6">
+                  I scan your 1-on-1 direct messages, group chats, calendar schedule, and enterprise documents to give you unified answers.
+                </p>
+
+                {/* Prompt Suggestions Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full text-left">
+                  {suggestedPrompts.map((p, idx) => {
+                    const Icon = p.icon;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => executePrompt(p.title)}
+                        className="p-3 rounded-xl border border-border bg-background/60 hover:bg-background hover:border-[#6D4C5B]/40 transition-all text-left group"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Icon className="w-3.5 h-3.5 text-[#6D4C5B] dark:text-[#D98C9A]" />
+                          <span className="text-xs font-semibold text-foreground group-hover:text-[#6D4C5B] dark:group-hover:text-[#D98C9A] transition-colors">
+                            {p.title}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{p.desc}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
@@ -148,10 +204,8 @@ export default function AIAssistantPage() {
                             : 'bg-[#E9DDE1] text-[#302A2D] dark:bg-[#352B30] dark:text-[#F4ECEF] rounded-bl-none border border-border/40'
                         }`}
                       >
-                        <div className="prose prose-sm dark:prose-invert max-w-none break-words font-medium">
-                          {message.content.split('\n').map((line, i) => (
-                            <p key={i} className="mb-2 last:mb-0">{line}</p>
-                          ))}
+                        <div className="prose prose-sm dark:prose-invert max-w-none break-words font-medium whitespace-pre-wrap">
+                          {message.content}
                         </div>
                         {message.sources && message.sources.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-border/50">
@@ -194,7 +248,7 @@ export default function AIAssistantPage() {
           <div className="p-4 border-t border-border bg-sidebar/30">
             <div className="flex gap-2 max-w-4xl mx-auto">
               <Input
-                placeholder="Ask a question about documents or your calendar..."
+                placeholder="Ask about meetings, chat conversations, schedule, or documents..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
