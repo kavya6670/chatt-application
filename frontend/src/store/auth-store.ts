@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '@/lib/auth-api';
+import { disconnectSocket } from '@/lib/socket';
 
 interface AuthState {
   user: User | null;
@@ -30,11 +31,22 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         if (typeof window !== 'undefined') {
-          document.cookie = `token=; path=/; max-age=0; SameSite=Lax`;
+          // Immediately purge cookie and local storage
+          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax';
+          document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax';
           localStorage.removeItem('token');
           localStorage.removeItem('auth-storage');
+          localStorage.removeItem('user');
+          try {
+            disconnectSocket();
+          } catch (e) {
+            // ignore
+          }
         }
         set({ user: null, token: null, isAuthenticated: false });
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       },
       updateUser: (user) => set({ user }),
     }),

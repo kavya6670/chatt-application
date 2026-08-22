@@ -100,6 +100,15 @@ export default function AdminEmployeesPage() {
   };
 
   const handleCreateUser = async () => {
+    if (!formData.name.trim() || !formData.email.trim()) {
+      alert('Please enter both employee name and email address.');
+      return;
+    }
+    if (!formData.departmentId) {
+      alert('Please select a department for the new employee.');
+      return;
+    }
+
     try {
       const tempPwd = generateTempPassword();
       const selectedDept = departments.find((d) => d.id === formData.departmentId);
@@ -107,8 +116,8 @@ export default function AdminEmployeesPage() {
 
       await usersApi.createUser({
         employeeId: empId,
-        email: formData.email,
-        name: formData.name,
+        email: formData.email.trim().toLowerCase(),
+        name: formData.name.trim(),
         password: tempPwd,
         role: formData.role as any,
         departmentId: formData.departmentId,
@@ -120,7 +129,8 @@ export default function AdminEmployeesPage() {
       setFormData({ name: '', email: '', role: 'DEVELOPER', departmentId: '' });
       loadData();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create user');
+      const msg = error.response?.data?.message || error.message || 'Failed to create employee profile';
+      alert(typeof msg === 'object' ? JSON.stringify(msg) : msg);
     }
   };
 

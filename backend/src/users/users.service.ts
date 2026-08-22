@@ -108,9 +108,13 @@ export class UsersService {
 
     const passwordHash = await bcrypt.hash(createUserDto.password, 10);
 
+    // Strip plaintext password property from Prisma model creation object
+    const { password, ...userData } = createUserDto;
+
     return this.prisma.user.create({
       data: {
-        ...createUserDto,
+        ...userData,
+        email: createUserDto.email.toLowerCase().trim(),
         passwordHash,
         mustResetPassword: true,
       },
