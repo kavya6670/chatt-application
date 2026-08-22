@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { chatApi, Conversation, Message } from '@/lib/chat-api';
+import { callsApi } from '@/lib/calls-api';
 import { getApiUrl } from '@/lib/api';
 import { usersApi } from '@/lib/users-api';
 import { getSocket } from '@/lib/socket';
@@ -209,6 +210,30 @@ export default function ChatPage() {
     setSelectedGroupMembers((prev) =>
       prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
+  };
+
+  const handleStartCallFromChat = async (type: 'VIDEO' | 'AUDIO') => {
+    if (!selectedConversation) return;
+    try {
+      const otherParticipantIds = selectedConversation.participants
+        .map((p) => p.userId)
+        .filter((id) => id && id !== user?.id);
+
+      if (otherParticipantIds.length === 0) {
+        router.push('/dashboard/calls');
+        return;
+      }
+
+      const res = await callsApi.createCall({
+        type,
+        conversationId: selectedConversation.id,
+        participantIds: otherParticipantIds,
+      });
+      router.push(`/dashboard/calls/${res.data.id}`);
+    } catch (err) {
+      console.error('Failed to start call from chat:', err);
+      router.push('/dashboard/calls');
+    }
   };
 
   if (isLoading) {
@@ -447,10 +472,22 @@ export default function ChatPage() {
 
               {/* Actions Header */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <Button variant="ghost" size="sm" disabled className="h-8 w-8 p-0 text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleStartCallFromChat('AUDIO')}
+                  className="h-8 w-8 p-0 text-[#6D4C5B] dark:text-[#D98C9A] hover:bg-sidebar rounded-lg"
+                  title="Start Audio Call"
+                >
                   <Phone className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="sm" disabled className="h-8 w-8 p-0 text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleStartCallFromChat('VIDEO')}
+                  className="h-8 w-8 p-0 text-[#6D4C5B] dark:text-[#D98C9A] hover:bg-sidebar rounded-lg"
+                  title="Start Video Call"
+                >
                   <Video className="w-4 h-4" />
                 </Button>
                 <Button
