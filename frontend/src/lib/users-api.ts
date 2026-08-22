@@ -30,6 +30,9 @@ export const usersApi = {
     isActive?: boolean;
   }) => api.put<User>(`/users/${id}`, data),
 
+  resetPassword: (id: string, password?: string) =>
+    api.post<{ message: string; temporaryPassword: string }>(`/users/${id}/reset-password`, { password }),
+
   deleteUser: (id: string) => api.delete(`/users/${id}`),
 
   deactivateUser: (id: string) => api.post(`/users/${id}/deactivate`),

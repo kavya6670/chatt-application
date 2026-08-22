@@ -147,6 +147,33 @@ export class UsersService {
     });
   }
 
+  async adminResetPassword(id: string, customPassword?: string) {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let tempPassword = customPassword;
+    if (!tempPassword) {
+      tempPassword = '';
+      for (let i = 0; i < 12; i++) {
+        tempPassword += charset.charAt(Math.floor(Math.random() * charset.length));
+      }
+    }
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        passwordHash,
+        mustResetPassword: true,
+      },
+    });
+    return {
+      message: 'Password reset successfully',
+      temporaryPassword: tempPassword,
+    };
+  }
+
   async updatePassword(id: string, passwordHash: string) {
     return this.prisma.user.update({
       where: { id },

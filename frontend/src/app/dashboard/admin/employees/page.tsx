@@ -10,7 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Plus, Edit, Trash2, Key, Search, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Key, Search, AlertCircle, Copy, Check, ShieldCheck, UserCheck } from 'lucide-react';
+
+interface CreatedCredentials {
+  name: string;
+  employeeId: string;
+  email: string;
+  password: string;
+  isReset?: boolean;
+}
 
 export default function AdminEmployeesPage() {
   const router = useRouter();
@@ -26,14 +34,15 @@ export default function AdminEmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
   const [filterRole, setFilterRole] = useState('');
-  const [tempPassword, setTempPassword] = useState('');
-  const [showTempPassword, setShowTempPassword] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<CreatedCredentials | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     role: 'DEVELOPER',
     departmentId: '',
+    customPassword: '',
   });
 
   useEffect(() => {
@@ -110,7 +119,7 @@ export default function AdminEmployeesPage() {
     }
 
     try {
-      const tempPwd = generateTempPassword();
+      const tempPwd = formData.customPassword.trim() || generateTempPassword();
       const selectedDept = departments.find((d) => d.id === formData.departmentId);
       const empId = generateEmployeeId(selectedDept?.slug || 'GEN');
 
@@ -123,10 +132,16 @@ export default function AdminEmployeesPage() {
         departmentId: formData.departmentId,
       });
 
-      setTempPassword(tempPwd);
-      setShowTempPassword(true);
+      setCreatedCredentials({
+        name: formData.name.trim(),
+        employeeId: empId,
+        email: formData.email.trim().toLowerCase(),
+        password: tempPwd,
+        isReset: false,
+      });
+
       setShowCreateModal(false);
-      setFormData({ name: '', email: '', role: 'DEVELOPER', departmentId: '' });
+      setFormData({ name: '', email: '', role: 'DEVELOPER', departmentId: '', customPassword: '' });
       loadData();
     } catch (error: any) {
       const msg = error.response?.data?.message || error.message || 'Failed to create employee profile';
@@ -147,7 +162,7 @@ export default function AdminEmployeesPage() {
 
       setShowEditModal(false);
       setSelectedUser(null);
-      setFormData({ name: '', email: '', role: 'DEVELOPER', departmentId: '' });
+      setFormData({ name: '', email: '', role: 'DEVELOPER', departmentId: '', customPassword: '' });
       loadData();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to update user');
@@ -165,10 +180,18 @@ export default function AdminEmployeesPage() {
     }
   };
 
-  const handleResetPassword = async (userId: string) => {
+  const handleResetPassword = async (emp: User) => {
+    if (!confirm(`Are you sure you want to reset password for ${emp.name} (${emp.employeeId})?`)) return;
+
     try {
-      const tempPwd = generateTempPassword();
-      alert(`Temporary password for user: ${tempPwd}\n(In production, this would be sent via email)`);
+      const res = await usersApi.resetPassword(emp.id);
+      setCreatedCredentials({
+        name: emp.name,
+        employeeId: emp.employeeId,
+        email: emp.email,
+        password: res.data.temporaryPassword,
+        isReset: true,
+      });
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to reset password');
     }
@@ -194,8 +217,22 @@ export default function AdminEmployeesPage() {
       email: user.email,
       role: user.role,
       departmentId: user.departmentId,
+      customPassword: '',
     });
     setShowEditModal(true);
+  };
+
+  const copyToClipboard = (text: string, fieldName: string) => {
+    navigator.clipboard?.writeText?.(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 2500);
+  };
+
+  const copyFullMessage = () => {
+    if (!createdCredentials) return;
+    const loginUrl = typeof window !== 'undefined' ? `${window.location.origin}/login` : 'https://stitch-enterprise-frontend.onrender.com/login';
+    const text = `Welcome to Stitch Hub, ${createdCredentials.name}!\n\nHere are your login credentials:\n• Employee ID: ${createdCredentials.employeeId}\n• Email: ${createdCredentials.email}\n• Temporary Password: ${createdCredentials.password}\n• Login Portal: ${loginUrl}\n\nPlease log in and update your password upon first access.`;
+    copyToClipboard(text, 'full');
   };
 
   if (isLoading) {
@@ -299,7 +336,11 @@ export default function AdminEmployeesPage() {
               <tbody className="divide-y divide-border/60 text-xs">
                 {filteredUsers.map((emp) => (
                   <tr key={emp.id} className="hover:bg-sidebar/30 transition-colors">
-                    <td className="py-3.5 px-6 font-mono text-foreground font-semibold">{emp.employeeId}</td>
+                    <td className="py-3.5 px-6 font-mono text-foreground font-semibold">
+                      <span className="bg-sidebar px-2.5 py-1 rounded-md border border-border">
+                        {emp.employeeId}
+                      </span>
+                    </td>
                     <td className="py-3.5 px-6 font-semibold text-foreground">{emp.name}</td>
                     <td className="py-3.5 px-6 text-muted-foreground">{emp.email}</td>
                     <td className="py-3.5 px-6 text-foreground">{emp.department?.name || 'General'}</td>
@@ -325,6 +366,7 @@ export default function AdminEmployeesPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => openEditModal(emp)}
+                          title="Edit Employee"
                           className="h-8 w-8 p-0 text-[#6D4C5B] hover:bg-[#E8DCE0] dark:text-[#D98C9A] dark:hover:bg-[#352B30] rounded-lg"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -332,7 +374,8 @@ export default function AdminEmployeesPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleResetPassword(emp.id)}
+                          onClick={() => handleResetPassword(emp)}
+                          title="Reset Employee Password"
                           className="h-8 w-8 p-0 text-[#A66A7A] hover:bg-[#E8DCE0] dark:hover:bg-[#352B30] rounded-lg"
                         >
                           <Key className="w-3.5 h-3.5" />
@@ -353,6 +396,7 @@ export default function AdminEmployeesPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDeleteUser(emp.id)}
+                          title="Delete Employee"
                           className="h-8 w-8 p-0 text-[#B85C63] hover:bg-[#B85C63]/10 rounded-lg"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -383,9 +427,10 @@ export default function AdminEmployeesPage() {
               </CardHeader>
               <CardContent className="p-0 space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="name" className="text-xs font-semibold text-foreground">Full Name</Label>
+                  <Label htmlFor="name" className="text-xs font-semibold text-foreground">Full Name *</Label>
                   <Input
                     id="name"
+                    placeholder="e.g. Kavyanjali Shan"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -393,10 +438,11 @@ export default function AdminEmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-semibold text-foreground">Email Address</Label>
+                  <Label htmlFor="email" className="text-xs font-semibold text-foreground">Email Address *</Label>
                   <Input
                     id="email"
                     type="email"
+                    placeholder="e.g. kavyashanu2005@gmail.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
@@ -404,7 +450,7 @@ export default function AdminEmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="department" className="text-xs font-semibold text-foreground">Department</Label>
+                  <Label htmlFor="department" className="text-xs font-semibold text-foreground">Department *</Label>
                   <select
                     id="department"
                     value={formData.departmentId}
@@ -421,7 +467,7 @@ export default function AdminEmployeesPage() {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="role" className="text-xs font-semibold text-foreground">Access Role</Label>
+                  <Label htmlFor="role" className="text-xs font-semibold text-foreground">Access Role *</Label>
                   <select
                     id="role"
                     value={formData.role}
@@ -434,8 +480,21 @@ export default function AdminEmployeesPage() {
                     <option value="ADMIN">Admin</option>
                   </select>
                 </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="customPassword" className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Initial Password (Optional)</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">Leave blank to auto-generate</span>
+                  </Label>
+                  <Input
+                    id="customPassword"
+                    placeholder="e.g. Welcome2026! (or leave blank)"
+                    value={formData.customPassword}
+                    onChange={(e) => setFormData({ ...formData, customPassword: e.target.value })}
+                    className="bg-input border-border text-foreground text-xs focus:border-[#A66A7A] h-10 rounded-xl font-mono"
+                  />
+                </div>
                 <div className="flex gap-2 pt-4">
-                  <Button onClick={handleCreateUser} className="flex-1 bg-[#6D4C5B] hover:bg-[#5B3D4A] text-white text-xs h-10 rounded-xl">
+                  <Button onClick={handleCreateUser} className="flex-1 bg-[#6D4C5B] hover:bg-[#5B3D4A] text-white text-xs h-10 rounded-xl font-semibold">
                     Create Employee
                   </Button>
                   <Button variant="outline" onClick={() => setShowCreateModal(false)} className="flex-1 text-xs h-10 border-border rounded-xl">
@@ -520,30 +579,117 @@ export default function AdminEmployeesPage() {
           </div>
         )}
 
-        {/* Temporary Password Display */}
-        {showTempPassword && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-            <Card className="w-full max-w-md border border-border bg-card rounded-2xl shadow-2xl p-6">
-              <CardHeader className="p-0 pb-4">
-                <h3 className="text-base font-bold text-[#5F8F72] flex items-center gap-1.5">
-                  <AlertCircle className="w-5 h-5 text-[#5F8F72]" />
-                  Employee Profile Created!
-                </h3>
-                <p className="text-muted-foreground text-xs mt-1">Copy and share these login credentials securely.</p>
-              </CardHeader>
-              <CardContent className="p-0 space-y-4">
-                <div className="bg-[#C49A5A]/10 border border-[#C49A5A]/30 rounded-xl p-3.5 text-xs text-[#C49A5A] leading-relaxed">
-                  <strong>⚠️ Critical warning:</strong> The temporary password is only displayed once. The employee will be forced to change this password during their initial login attempt.
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">Temporary Password</Label>
-                  <div className="p-3 bg-sidebar border border-border rounded-xl font-mono text-base text-foreground font-black tracking-wide text-center">
-                    {tempPassword}
+        {/* COMPREHENSIVE CREDENTIALS SUCCESS DISPLAY MODAL */}
+        {createdCredentials && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <Card className="w-full max-w-lg border border-border bg-card rounded-2xl shadow-2xl p-6 space-y-5">
+              <CardHeader className="p-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#5F8F72]/15 text-[#5F8F72] flex items-center justify-center border border-[#5F8F72]/30">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                      {createdCredentials.isReset ? 'Password Reset Successfully!' : 'Employee Profile Created!'}
+                    </h3>
+                    <p className="text-muted-foreground text-xs mt-0.5">
+                      Share these login credentials securely with the employee.
+                    </p>
                   </div>
                 </div>
-                <Button onClick={() => setShowTempPassword(false)} className="w-full bg-[#6D4C5B] hover:bg-[#5B3D4A] text-white text-xs h-10 rounded-xl">
-                  Saved & Confirmed
-                </Button>
+              </CardHeader>
+
+              <CardContent className="p-0 space-y-4">
+                {/* Credentials Box */}
+                <div className="bg-sidebar border border-border rounded-xl p-4 space-y-3.5">
+                  {/* Employee ID */}
+                  <div className="flex items-center justify-between pb-3 border-b border-border/80">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Employee ID (Login Username)</span>
+                      <p className="font-mono text-base font-black text-[#6D4C5B] dark:text-[#D98C9A] mt-0.5">
+                        {createdCredentials.employeeId}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(createdCredentials.employeeId, 'empid')}
+                      className="h-8 text-xs border-border bg-card hover:bg-sidebar text-foreground rounded-lg px-2.5"
+                    >
+                      {copiedField === 'empid' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 mr-1 text-[#5F8F72]" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 mr-1" />
+                          <span>Copy ID</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Temporary Password */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Temporary Password</span>
+                      <p className="font-mono text-base font-bold text-foreground mt-0.5 select-all">
+                        {createdCredentials.password}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(createdCredentials.password, 'password')}
+                      className="h-8 text-xs border-border bg-card hover:bg-sidebar text-foreground rounded-lg px-2.5"
+                    >
+                      {copiedField === 'password' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 mr-1 text-[#5F8F72]" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 mr-1" />
+                          <span>Copy Password</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Warning note */}
+                <div className="bg-[#C49A5A]/10 border border-[#C49A5A]/30 rounded-xl p-3 text-xs text-[#C49A5A] leading-relaxed">
+                  <strong>💡 How they log in:</strong> The employee uses their <strong>Employee ID ({createdCredentials.employeeId})</strong> and the <strong>Temporary Password</strong> to log in. They will be prompted to set their permanent password on first login.
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button
+                    onClick={copyFullMessage}
+                    className="flex-1 bg-[#6D4C5B] hover:bg-[#5B3D4A] text-white text-xs h-10 rounded-xl font-semibold flex items-center justify-center gap-1.5"
+                  >
+                    {copiedField === 'full' ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-300" />
+                        <span>All Credentials Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copy Complete Login Message</span>
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreatedCredentials(null)}
+                    className="h-10 text-xs border-border rounded-xl px-5 font-medium"
+                  >
+                    Done
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
