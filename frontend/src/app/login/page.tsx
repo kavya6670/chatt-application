@@ -57,7 +57,15 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      if (err.response?.status === 500) {
+        setError('Internal Server Error (500): The database might be unreachable or disconnected. Please verify backend database connectivity.');
+      } else if (err.response?.status === 401) {
+        setError(err.response?.data?.message || 'Invalid employee ID or password.');
+      } else if (err.message === 'Network Error' || !err.response) {
+        setError('Cannot connect to backend server. Please verify the backend is running.');
+      } else {
+        setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
